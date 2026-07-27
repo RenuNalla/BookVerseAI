@@ -152,6 +152,7 @@ activemq-data/
 .envrc
 .venv
 env/
+envi/
 venv/
 ENV/
 env.bak/
@@ -217,3 +218,19 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Frontend / Angular
+frontend/dist/
+frontend/.angular/
+frontend/.sass-cache/
+frontend/coverage/
+
+# Local uploads and generated media
+backend/storage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+node_modules/
+
