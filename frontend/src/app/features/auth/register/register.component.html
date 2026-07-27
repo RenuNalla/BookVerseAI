@@ -10,7 +10,7 @@
         <form [formGroup]="form" (ngSubmit)="submit()">
           <div class="mb-3">
             <label class="form-label small fw-semibold">Full name</label>
-            <input type="text" class="form-control" formControlName="full_name" placeholder="Jane Doe" />
+            <input type="text" class="form-control" formControlName="full_name" placeholder="Name" />
           </div>
 
           <div class="mb-3">
@@ -20,7 +20,22 @@
 
           <div class="mb-4">
             <label class="form-label small fw-semibold">Password</label>
-            <input type="password" class="form-control" formControlName="password" placeholder="At least 8 characters" />
+            <div class="position-relative">
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                class="form-control pe-5"
+                formControlName="password"
+                placeholder="At least 8 characters"
+                autocomplete="new-password"
+              />
+              <button
+                type="button"
+                class="btn btn-link btn-sm position-absolute end-0 top-50 translate-middle-y me-2"
+                (click)="togglePasswordVisibility()"
+              >
+                {{ showPassword ? 'Hide' : 'Show' }}
+              </button>
+            </div>
           </div>
 
           <button type="submit" class="btn btn-brand w-100 py-2" [disabled]="loading">

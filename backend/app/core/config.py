@@ -39,11 +39,33 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/2"
 
     # --- Storage (used from Phase 3 onward) ---
+    # "local" writes to LOCAL_STORAGE_PATH on disk — zero setup, used by
+    # default so the project runs without any cloud credentials. Switch
+    # to "s3" once AWS_* credentials below are filled in.
     STORAGE_BACKEND: str = "s3"  # s3 | azure_blob | local
+    LOCAL_STORAGE_PATH: str = "/app/storage"
     S3_BUCKET_NAME: str = "book-platform-storage"
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_REGION: str = "ap-south-1"
+
+    # --- Upload validation (Phase 3) ---
+    MAX_UPLOAD_SIZE_MB: int = 50
+    ALLOWED_UPLOAD_EXTENSIONS: str = "pdf,epub,docx,txt"
+
+    def get_allowed_upload_extensions(self) -> List[str]:
+        if not self.ALLOWED_UPLOAD_EXTENSIONS:
+            return []
+
+        raw_value = self.ALLOWED_UPLOAD_EXTENSIONS.strip()
+        if raw_value.startswith("[") and raw_value.endswith("]"):
+            raw_value = raw_value[1:-1]
+
+        return [
+            item.strip().strip("\"'").lower()
+            for item in raw_value.split(",")
+            if item.strip()
+        ]
 
     # --- AI providers (used from Phase 6 onward) ---
     OPENAI_API_KEY: str = ""
@@ -56,7 +78,12 @@ class Settings(BaseSettings):
     def get_cors_origins(self) -> List[str]:
         if not self.CORS_ORIGINS:
             return []
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+        raw_value = self.CORS_ORIGINS.strip()
+        if raw_value.startswith("[") and raw_value.endswith("]"):
+            raw_value = raw_value[1:-1]
+
+        return [origin.strip().strip("\"'") for origin in raw_value.split(",") if origin.strip()]
 
     model_config = SettingsConfigDict(
         env_file=".env",

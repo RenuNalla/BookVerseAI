@@ -7,26 +7,24 @@ That separation makes it trivially unit-testable and reusable if we ever
 add a second auth-consuming service.
 """
 
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ALGORITHM = "HS256"
 TokenType = Literal["access", "refresh"]
 
 
 def hash_password(plain_password: str) -> str:
-    return pwd_context.hash(plain_password)
+    return hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return hash_password(plain_password) == hashed_password
 
 
 def create_token(subject: str, token_type: TokenType) -> str:

@@ -10,17 +10,32 @@ Responsible ONLY for:
 All business logic lives in services/, all DB access in db/ and models/,
 all request/response contracts in schemas/. This file should stay thin.
 """
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
 from app.api.v1.router import api_router
+from app.db.base import Base
+from app.db.session import engine
+from app.models import book, user  # noqa: F401
 
 # Configure logging as early as possible so startup events are captured.
 configure_logging()
 logger = get_logger(__name__)
+
+Base.metadata.create_all(bind=engine)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("startup_complete", extra={"env": settings.ENVIRONMENT})
+    yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -29,6 +44,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
+    lifespan=lifespan,
 )
 
 # CORS: allows the Angular dev server (http://localhost:4200) and the
@@ -45,11 +61,17 @@ app.add_middleware(
 # under /api/v1 via this single router. New phases add routers here.
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
+# Only relevant when STORAGE_BACKEND=local (the dev default). In that mode,
+# LocalStorageBackend.url_for() returns "/files/<key>" — this mount is what
+# actually serves those bytes. Not used at all when STORAGE_BACKEND=s3,
+# since S3 URLs point straight at the bucket.
+if settings.STORAGE_BACKEND == "local":
+    Path(settings.LOCAL_STORAGE_PATH).mkdir(parents=True, exist_ok=True)
+    app.mount("/files", StaticFiles(directory=settings.LOCAL_STORAGE_PATH), name="files")
 
-@app.on_event("startup")
-async def on_startup() -> None:
-    logger.info("startup_complete", extra={"env": settings.ENVIRONMENT})
-
+#@app.on_event("startup")
+#async def on_startup() -> None:
+#    logger.info("startup_complete", extra={"env": settings.ENVIRONMENT})
 
 @app.get("/", tags=["root"])
 def root() -> dict:

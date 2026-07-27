@@ -10,3 +10,11 @@ def test_cors_origins_accepts_comma_separated_string(monkeypatch):
         "http://localhost:4200",
         "http://localhost:8080",
     ]
+
+
+def test_allowed_upload_extensions_accepts_comma_separated_string(monkeypatch):
+    monkeypatch.setenv("ALLOWED_UPLOAD_EXTENSIONS", "pdf, epub, docx")
+
+    settings = Settings()
+
+    assert settings.get_allowed_upload_extensions() == ["pdf", "epub", "docx"]

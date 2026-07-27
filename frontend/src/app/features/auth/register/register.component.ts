@@ -11,22 +11,26 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {
+  form: FormGroup;
   loading = false;
   errorMessage: string | null = null;
+  showPassword = false;
 
-  get form(): FormGroup {
-    return this.fb.group({
+  constructor(
+    private fb: FormBuilder,
+    private auth: AuthService,
+    private router: Router
+  ) {
+    this.form = this.fb.group({
       full_name: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
     });
   }
 
-  constructor(
-    private fb: FormBuilder,
-    private auth: AuthService,
-    private router: Router
-  ) {}
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
 
   submit(): void {
     if (this.form.invalid) {

@@ -10,7 +10,25 @@
 
 body {
   background-color: #ffffff;
+  color: #111827;
   font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.form-control {
+  color: #111827;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+}
+
+.form-control::placeholder {
+  color: #9ca3af;
+}
+
+.form-control:focus {
+  color: #111827;
+  background-color: #ffffff;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 0.2rem rgba(67, 56, 255, 0.15);
 }
 
 .btn-brand {
