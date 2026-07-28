@@ -21,9 +21,28 @@
       <div class="card-body p-4 p-md-5">
         <h5 class="text-start mb-3">Upload file</h5>
 
-        <div *ngIf="uploadedTitle" class="alert alert-success text-start">
-          <strong>{{ uploadedTitle }}</strong> uploaded successfully. It's in your
-          <a routerLink="/library">library</a> now, ready for translation (Phase 6).
+        <div *ngIf="uploadedBook" class="alert text-start"
+             [class.alert-success]="uploadedBook.status === 'parsed'"
+             [class.alert-info]="uploadedBook.status === 'uploaded' || uploadedBook.status === 'parsing'"
+             [class.alert-danger]="uploadedBook.status === 'failed'">
+          <strong>{{ uploadedBook.title }}</strong>
+
+          <ng-container [ngSwitch]="uploadedBook.status">
+            <p *ngSwitchCase="'uploaded'" class="mb-0 mt-1">Queued for parsing...</p>
+            <p *ngSwitchCase="'parsing'" class="mb-0 mt-1">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Extracting chapters (this can take a minute for scanned PDFs)...
+            </p>
+            <p *ngSwitchCase="'parsed'" class="mb-0 mt-1">
+              Parsed successfully. <a [routerLink]="['/books', uploadedBook.id]">View chapters</a> or check your <a routerLink="/library">library</a>.
+            </p>
+            <div *ngSwitchCase="'failed'" class="mt-1">
+              <p class="mb-2">Parsing failed: {{ uploadedBook.error_message }}</p>
+              <button class="btn btn-sm btn-outline-danger" type="button" (click)="retryParsing()">
+                Retry parsing
+              </button>
+            </div>
+          </ng-container>
         </div>
 
         <div *ngIf="uploadError" class="alert alert-danger text-start small">{{ uploadError }}</div>

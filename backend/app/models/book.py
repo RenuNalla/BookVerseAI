@@ -52,7 +52,13 @@ class Book(Base):
         Enum(BookStatus, name="book_status"), default=BookStatus.UPLOADED, nullable=False
     )
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Populated only when status == FAILED, surfaced to the frontend so
+    # the user sees *why* parsing failed instead of a silent stuck state.
+    error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=func.now(), server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), default=func.now(), server_default=func.now(), onupdate=func.now()
     )

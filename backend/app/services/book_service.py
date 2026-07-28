@@ -137,6 +137,14 @@ def create_book(db: Session, owner_id: uuid.UUID, file: UploadFile, content: byt
     db.commit()
     db.refresh(book)
     logger.info(f"book_uploaded: {book.id} owner={owner_id} ext={extension}")
+
+    # Enqueued, not run inline — parsing (especially OCR) can take well
+    # beyond an HTTP request's reasonable timeout. The book sits in
+    # UPLOADED status until the worker picks this up.
+    from app.tasks.parsing_tasks import parse_book_task
+ 
+    parse_book_task.delay(str(book.id))
+
     return book
 
 
@@ -152,3 +160,28 @@ def get_book(db: Session, owner_id: uuid.UUID, book_id: uuid.UUID) -> Book | Non
     return db.execute(
         select(Book).where(Book.id == book_id, Book.owner_id == owner_id)
     ).scalar_one_or_none()
+
+def list_chapters(db: Session, book: Book):
+    from app.models.chapter import Chapter
+ 
+    return list(
+        db.execute(
+            select(Chapter).where(Chapter.book_id == book.id).order_by(Chapter.chapter_index)
+        ).scalars()
+    )
+ 
+ 
+def get_chapter(db: Session, book: Book, chapter_id: uuid.UUID):
+    from app.models.chapter import Chapter
+ 
+    return db.execute(
+        select(Chapter).where(Chapter.id == chapter_id, Chapter.book_id == book.id)
+    ).scalar_one_or_none()
+ 
+ 
+def reparse_book(db: Session, book: Book) -> None:
+    """Re-triggers parsing — useful after a FAILED parse (e.g. once OCR
+    dependencies are installed) or if parsing logic improves later."""
+    from app.tasks.parsing_tasks import parse_book_task
+ 
+    parse_book_task.delay(str(book.id))

@@ -1,0 +1,37 @@
+<div class="container py-4" style="max-width: 720px;">
+  <a routerLink="/library" class="small text-muted d-inline-block mb-3">&larr; Back to library</a>
+
+  <div *ngIf="loading" class="text-center py-5">
+    <span class="spinner-border"></span>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+
+  <ng-container *ngIf="book && !loading">
+    <h3 class="mb-1">{{ book.title }}</h3>
+    <p class="text-muted mb-3">
+      {{ book.author || 'Unknown author' }} &middot; {{ book.file_extension.toUpperCase() }}
+      <span *ngIf="book.page_count"> &middot; {{ book.page_count }} pages</span>
+    </p>
+
+    <span
+      class="badge rounded-pill mb-4"
+      [class.text-bg-success]="book.status === 'parsed'"
+      [class.text-bg-secondary]="book.status === 'uploaded' || book.status === 'parsing'"
+      [class.text-bg-danger]="book.status === 'failed'"
+    >
+      {{ book.status }}
+    </span>
+
+    <div *ngIf="book.status === 'parsed' && chapters.length === 0" class="text-muted">
+      No chapters were detected.
+    </div>
+
+    <ul class="list-group" *ngIf="chapters.length > 0">
+      <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let chapter of chapters">
+        <span>{{ chapter.chapter_index + 1 }}. {{ chapter.title }}</span>
+        <span class="text-muted small">{{ chapter.word_count }} words</span>
+      </li>
+    </ul>
+  </ng-container>
+</div>

@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # "local" writes to LOCAL_STORAGE_PATH on disk — zero setup, used by
     # default so the project runs without any cloud credentials. Switch
     # to "s3" once AWS_* credentials below are filled in.
-    STORAGE_BACKEND: str = "s3"  # s3 | azure_blob | local
+    STORAGE_BACKEND: str = "local"  # s3 | azure_blob | local
     LOCAL_STORAGE_PATH: str = "/app/storage"
     S3_BUCKET_NAME: str = "book-platform-storage"
     AWS_ACCESS_KEY_ID: str = ""

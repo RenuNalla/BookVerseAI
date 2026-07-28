@@ -26,3 +26,20 @@ class BookOut(BaseModel):
 class BookListOut(BaseModel):
     items: list[BookOut]
     total: int
+
+class ChapterOut(BaseModel):
+    id: uuid.UUID
+    chapter_index: int
+    title: str
+    word_count: int
+ 
+    model_config = {"from_attributes": True}
+ 
+ 
+class ChapterDetailOut(ChapterOut):
+    content: str
+ 
+ 
+class ChapterListOut(BaseModel):
+    items: list[ChapterOut]
+    total: int

@@ -19,11 +19,17 @@ from app.api.deps import get_current_user
 from app.core.logging import get_logger
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.book import BookListOut, BookOut
-from app.services.book_service import BookValidationError, create_book, get_book, list_books
+from app.schemas.book import BookListOut, BookOut, ChapterDetailOut, ChapterListOut
+from app.services.book_service import BookValidationError, create_book, get_book,get_chapter, list_books,list_chapters,reparse_book
 
 router = APIRouter(prefix="/books")
 logger = get_logger(__name__)
+
+def _get_owned_book_or_404(db: Session, current_user: User, book_id: uuid.UUID):
+    book = get_book(db, current_user.id, book_id)
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    return book
 
 
 @router.post("/upload", response_model=BookOut, status_code=status.HTTP_201_CREATED)
@@ -59,3 +65,40 @@ def get_book_detail(
     if book is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     return book
+
+@router.post("/{book_id}/reparse", response_model=BookOut)
+def reparse_book_endpoint(
+    book_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Re-runs parsing — useful if a book landed in FAILED status and the
+    underlying cause (e.g. missing OCR dependency) has since been fixed."""
+    book = _get_owned_book_or_404(db, current_user, book_id)
+    reparse_book(db, book)
+    return book
+ 
+ 
+@router.get("/{book_id}/chapters", response_model=ChapterListOut)
+def get_book_chapters(
+    book_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    book = _get_owned_book_or_404(db, current_user, book_id)
+    chapters = list_chapters(db, book)
+    return ChapterListOut(items=chapters, total=len(chapters))
+ 
+ 
+@router.get("/{book_id}/chapters/{chapter_id}", response_model=ChapterDetailOut)
+def get_book_chapter_detail(
+    book_id: uuid.UUID,
+    chapter_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    book = _get_owned_book_or_404(db, current_user, book_id)
+    chapter = get_chapter(db, book, chapter_id)
+    if chapter is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+    return chapter

@@ -16,6 +16,7 @@ from app.db.base import Base
 # --- Import models here as they're added so autogenerate sees them ---
 from app.models.user import User  # noqa: F401
 from app.models.book import Book  # noqa: F401
+from app.models.chapter import Chapter  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

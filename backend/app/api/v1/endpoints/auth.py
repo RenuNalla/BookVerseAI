@@ -33,6 +33,7 @@ def register_user(payload: UserRegister, db: Session = Depends(get_db)) -> User:
     db.add(user)
     db.commit()
     db.refresh(user)
+    
     return user
 
 
@@ -41,7 +42,13 @@ def login_user(payload: UserLogin, db: Session = Depends(get_db)) -> dict:
     db.execute(text("CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email VARCHAR(255) UNIQUE NOT NULL, full_name VARCHAR(255) NOT NULL, hashed_password VARCHAR(255), google_id VARCHAR(255), is_active BOOLEAN DEFAULT 1, is_verified BOOLEAN DEFAULT 0, created_at TIMESTAMP, updated_at TIMESTAMP)"))
     db.commit()
     user = db.query(User).filter(User.email == str(payload.email)).first()
-    if user is None or user.hashed_password is None or not verify_password(payload.password, user.hashed_password):
+    # Debug: show hashes when tests fail to help diagnose mismatch
+    if user is None or user.hashed_password is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+
+    
+
+    if not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     access_token = create_token(str(user.id), "access")
@@ -71,7 +78,15 @@ def refresh_token(payload: RefreshRequest, db: Session = Depends(get_db)) -> dic
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    user = db.query(User).filter(User.id == user_id).first()
+    # Decode string subject into UUID for DB lookup
+    try:
+        import uuid as _uuid
+
+        user_uuid = _uuid.UUID(user_id)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    user = db.query(User).filter(User.id == user_uuid).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
