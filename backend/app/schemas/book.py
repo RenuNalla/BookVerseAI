@@ -5,8 +5,6 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.models.book import BookStatus
-
 
 class BookOut(BaseModel):
     id: uuid.UUID
@@ -17,7 +15,7 @@ class BookOut(BaseModel):
     file_size_bytes: int
     page_count: int | None
     source_language: str
-    status: BookStatus
+    status: str
     created_at: datetime
 
     model_config = {"from_attributes": True}

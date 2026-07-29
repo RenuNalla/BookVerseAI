@@ -19,7 +19,7 @@ from app.core.celery_app import celery_app
 from app.core.logging import get_logger
 from app.core.storage import get_storage
 from app.db.session import SessionLocal
-from app.models.book import Book, BookStatus
+from app.models.book import Book
 from app.models.chapter import Chapter
 from app.services.parsing.orchestrator import parse_book_content
 
@@ -47,7 +47,7 @@ def parse_book_task(self: Task, book_id: str) -> None:
             logger.error(f"parse_book_task: book {book_id} not found")
             return
 
-        book.status = BookStatus.PARSING
+        book.status = "parsing"
         book.error_message = None
         db.commit()
 
@@ -57,7 +57,7 @@ def parse_book_task(self: Task, book_id: str) -> None:
             if not chapters:
                 raise BookParsingError("No extractable text found in this file.")
         except BookParsingError as exc:
-            book.status = BookStatus.FAILED
+            book.status = "failed"
             book.error_message = str(exc)
             db.commit()
             logger.error(f"parse_book_failed: {book_id} - {exc}")
@@ -76,7 +76,7 @@ def parse_book_task(self: Task, book_id: str) -> None:
                 )
             )
 
-        book.status = BookStatus.PARSED
+        book.status = "parsed"
         db.commit()
         logger.info(f"parse_book_succeeded: {book_id} chapters={len(chapters)}")
 
@@ -84,7 +84,7 @@ def parse_book_task(self: Task, book_id: str) -> None:
         db.rollback()
         book = db.get(Book, book_id)
         if book is not None:
-            book.status = BookStatus.FAILED
+            book.status = "failed"
             book.error_message = "Parsing failed due to an unexpected error."
             db.commit()
         logger.error(f"parse_book_unexpected_error: {book_id} - {exc}")

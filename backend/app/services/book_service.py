@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.storage import get_storage
-from app.models.book import Book, BookStatus
+from app.models.book import Book
 
 logger = get_logger(__name__)
 
@@ -131,7 +131,7 @@ def create_book(db: Session, owner_id: uuid.UUID, file: UploadFile, content: byt
         file_size_bytes=len(content),
         storage_key=storage_key,
         page_count=metadata.page_count,
-        status=BookStatus.UPLOADED,
+        status="uploaded",
     )
     db.add(book)
     db.commit()
