@@ -32,7 +32,13 @@ pytesseract==0.3.13
 pdf2image==1.17.0
 Pillow==10.4.0
 
-# --- S3 storage (only used when STORAGE_BACKEND=s3) ---
+#---Chunking(Phase 5)---
+tiktoken==0.8.0
+
+# --- Translation (Phase 6) ---
+openai==1.51.0
+
+# --- S3 storage (only used when STORAGE_BACKEND=s3) ---c
 boto3==1.35.36
 
 # --- Testing ---

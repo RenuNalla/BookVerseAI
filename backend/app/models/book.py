@@ -4,6 +4,8 @@ Book ORM model. Represents one uploaded source file. Translated copies
 in that phase — kept out for now so this migration stays focused.
 """
 
+
+import enum
 import uuid
 from datetime import datetime
 
@@ -13,6 +15,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from app.db.base import Base
+
+class BookStatus(str, enum.Enum):
+    UPLOADED = "uploaded"          # file stored, nothing processed yet
+    PARSING = "parsing"            # Phase 4 text extraction in progress
+    PARSED = "parsed"
+    CHUNKING = "chunking"          # Phase 5 chunking in progress
+    CHUNKED = "chunked"            # ready for translation
+    TRANSLATING = "translating"    # Phase 6
+    READY = "ready"
+    FAILED = "failed"
 
 
 class Book(Base):
@@ -38,7 +50,7 @@ class Book(Base):
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     source_language: Mapped[str] = mapped_column(String(10), default="en")
-    status: Mapped[str] = mapped_column(String(20), default="uploaded", nullable=False)
+    status: Mapped[BookStatus] = mapped_column(String(20), default=BookStatus.UPLOADED, nullable=False)
 
     # Populated only when status == FAILED, surfaced to the frontend so
     # the user sees *why* parsing failed instead of a silent stuck state.
