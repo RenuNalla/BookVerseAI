@@ -19,7 +19,7 @@ from app.core.celery_app import celery_app
 from app.core.logging import get_logger
 from app.core.storage import get_storage
 from app.db.session import SessionLocal
-from app.models.book import Book
+from app.models.book import Book,BookStatus
 from app.models.chapter import Chapter
 from app.services.parsing.orchestrator import parse_book_content
 
@@ -47,7 +47,7 @@ def parse_book_task(self: Task, book_id: str) -> None:
             logger.error(f"parse_book_task: book {book_id} not found")
             return
 
-        book.status = "parsing"
+        book.status = BookStatus.PARSING
         book.error_message = None
         db.commit()
 
@@ -57,7 +57,7 @@ def parse_book_task(self: Task, book_id: str) -> None:
             if not chapters:
                 raise BookParsingError("No extractable text found in this file.")
         except BookParsingError as exc:
-            book.status = "failed"
+            book.status = BookStatus.FAILED
             book.error_message = str(exc)
             db.commit()
             logger.error(f"parse_book_failed: {book_id} - {exc}")
@@ -76,15 +76,21 @@ def parse_book_task(self: Task, book_id: str) -> None:
                 )
             )
 
-        book.status = "parsed"
+        book.status = BookStatus.PARSED
         db.commit()
         logger.info(f"parse_book_succeeded: {book_id} chapters={len(chapters)}")
+
+        # Chunking has no reason to wait for a separate user action —
+        # a parsed book with no chunks isn't useful for anything yet.
+        from app.tasks.chunking_tasks import chunk_book_task
+
+        chunk_book_task.delay(book_id)
 
     except Exception as exc:  # noqa: BLE001 - last-resort guard so status never gets stuck
         db.rollback()
         book = db.get(Book, book_id)
         if book is not None:
-            book.status = "failed"
+            book.status = BookStatus.FAILED
             book.error_message = "Parsing failed due to an unexpected error."
             db.commit()
         logger.error(f"parse_book_unexpected_error: {book_id} - {exc}")

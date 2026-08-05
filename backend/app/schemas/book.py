@@ -5,6 +5,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.models.book import BookStatus
+from app.models.chunk import ChunkStatus
 
 class BookOut(BaseModel):
     id: uuid.UUID
@@ -15,7 +17,8 @@ class BookOut(BaseModel):
     file_size_bytes: int
     page_count: int | None
     source_language: str
-    status: str
+    status: BookStatus
+    error_message: str | None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -41,3 +44,25 @@ class ChapterDetailOut(ChapterOut):
 class ChapterListOut(BaseModel):
     items: list[ChapterOut]
     total: int
+
+class ChunkOut(BaseModel):
+    id: uuid.UUID
+    chapter_id: uuid.UUID
+    chunk_index: int
+    token_count: int
+    char_count: int
+    status: ChunkStatus
+
+    model_config = {"from_attributes": True}
+
+
+class ChunkDetailOut(ChunkOut):
+    content: str
+    context_snippet: str | None
+    error_message: str | None
+
+
+class ChunkListOut(BaseModel):
+    items: list[ChunkOut]
+    total: int
+    total_tokens: int

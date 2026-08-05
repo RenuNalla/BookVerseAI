@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Subscription, interval, switchMap, takeWhile } from 'rxjs';
 import { HealthService } from '../../core/services/health.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Book, BookService, progressPercent } from '../../core/services/book.service'; 
+import { Book, BookService, progressPercent } from '../../core/services/book.service';
 
 const ALLOWED_EXTENSIONS = ['pdf', 'epub', 'docx', 'txt'];
 const MAX_SIZE_MB = 50;
@@ -151,7 +151,10 @@ export class UploadComponent implements OnInit, OnDestroy {
     this.pollSub = interval(POLL_INTERVAL_MS)
       .pipe(
         switchMap(() => this.bookService.get(bookId)),
-        takeWhile((book) => book.status === 'uploaded' || book.status === 'parsing', true)
+        takeWhile(
+          (book) => (['uploaded', 'parsing', 'chunking'] as const).includes(book.status as any),
+          true
+        )
       )
       .subscribe((book) => {
         this.uploadedBook = book;

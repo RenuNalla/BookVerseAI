@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.storage import get_storage
-from app.models.book import Book
+from app.models.book import Book,BookStatus
 
 logger = get_logger(__name__)
 
@@ -131,7 +131,7 @@ def create_book(db: Session, owner_id: uuid.UUID, file: UploadFile, content: byt
         file_size_bytes=len(content),
         storage_key=storage_key,
         page_count=metadata.page_count,
-        status="uploaded",
+        status=BookStatus.UPLOADED,
     )
     db.add(book)
     db.commit()
@@ -185,3 +185,38 @@ def reparse_book(db: Session, book: Book) -> None:
     from app.tasks.parsing_tasks import parse_book_task
  
     parse_book_task.delay(str(book.id))
+
+def list_chunks(db: Session, book: Book) -> list:
+    from app.models.chunk import Chunk
+
+    return list(
+        db.execute(
+            select(Chunk).where(Chunk.book_id == book.id).order_by(Chunk.chapter_id, Chunk.chunk_index)
+        ).scalars()
+    )
+
+
+def list_chunks_for_chapter(db: Session, chapter_id: uuid.UUID) -> list:
+    from app.models.chunk import Chunk
+
+    return list(
+        db.execute(
+            select(Chunk).where(Chunk.chapter_id == chapter_id).order_by(Chunk.chunk_index)
+        ).scalars()
+    )
+
+
+def get_chunk(db: Session, book: Book, chunk_id: uuid.UUID):
+    from app.models.chunk import Chunk
+
+    return db.execute(
+        select(Chunk).where(Chunk.id == chunk_id, Chunk.book_id == book.id)
+    ).scalar_one_or_none()
+
+
+def rechunk_book(db: Session, book: Book) -> None:
+    """Re-triggers chunking — useful after tuning CHUNK_MAX_TOKENS or
+    recovering from a FAILED chunking run."""
+    from app.tasks.chunking_tasks import chunk_book_task
+
+    chunk_book_task.delay(str(book.id))

@@ -19,7 +19,7 @@ celery_app = Celery(
     "book_platform",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.parsing_tasks"],
+    include=["app.tasks.parsing_tasks", "app.tasks.chunking_tasks", "app.tasks.translation_tasks"],
 )
 
 celery_app.conf.update(

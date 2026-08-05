@@ -19,8 +19,31 @@ from app.api.deps import get_current_user
 from app.core.logging import get_logger
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.book import BookListOut, BookOut, ChapterDetailOut, ChapterListOut
-from app.services.book_service import BookValidationError, create_book, get_book,get_chapter, list_books,list_chapters,reparse_book
+from app.schemas.book import (
+    BookListOut,
+    BookOut, 
+    ChapterDetailOut, 
+    ChapterListOut,
+    ChunkDetailOut,
+    ChunkListOut
+)
+from app.services.book_service import (
+    BookValidationError, 
+    create_book, 
+    get_book,
+    get_chapter,
+    get,
+    get_chunk,
+    list_books_chunk, 
+    list_books,
+    list_chapters,
+    reparse_book,
+    list_chunks,
+    list_chunks_for_chapter,
+    rechunk_book,
+    reparse_book,
+)
+
 
 router = APIRouter(prefix="/books")
 logger = get_logger(__name__)
@@ -61,10 +84,11 @@ def get_book_detail(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    book = get_book(db, current_user.id, book_id)
-    if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
-    return book
+    return _get_owned_book_or_404(db, current_user, book_id)
+    # book = get_book(db, current_user.id, book_id)
+    # if book is None:
+    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    # return book
 
 @router.post("/{book_id}/reparse", response_model=BookOut)
 def reparse_book_endpoint(
@@ -102,3 +126,54 @@ def get_book_chapter_detail(
     if chapter is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
     return chapter
+
+@router.post("/{book_id}/rechunk", response_model=BookOut)
+def rechunk_book_endpoint(
+    book_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Re-runs chunking — useful after a FAILED chunking run, or after
+    tuning CHUNK_MAX_TOKENS and wanting existing books re-chunked."""
+    book = _get_owned_book_or_404(db, current_user, book_id)
+    rechunk_book(db, book)
+    return book
+
+
+@router.get("/{book_id}/chunks", response_model=ChunkListOut)
+def get_book_chunks(
+    book_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    book = _get_owned_book_or_404(db, current_user, book_id)
+    chunks = list_chunks(db, book)
+    return ChunkListOut(items=chunks, total=len(chunks), total_tokens=sum(c.token_count for c in chunks))
+
+
+@router.get("/{book_id}/chapters/{chapter_id}/chunks", response_model=ChunkListOut)
+def get_chapter_chunks(
+    book_id: uuid.UUID,
+    chapter_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    book = _get_owned_book_or_404(db, current_user, book_id)
+    chapter = get_chapter(db, book, chapter_id)
+    if chapter is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+    chunks = list_chunks_for_chapter(db, chapter.id)
+    return ChunkListOut(items=chunks, total=len(chunks), total_tokens=sum(c.token_count for c in chunks))
+
+@router.get("/{book_id}/chunks/{chunk_id}", response_model=ChunkDetailOut)
+def get_chunk_detail(
+    book_id: uuid.UUID,
+    chunk_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    book = _get_owned_book_or_404(db, current_user, book_id)
+    chunk = get_chunk(db, book, chunk_id)
+    if chunk is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chunk not found")
+    return chunk
