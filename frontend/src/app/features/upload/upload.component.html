@@ -22,8 +22,8 @@
         <h5 class="text-start mb-3">Upload file</h5>
 
         <div *ngIf="uploadedBook" class="alert text-start"
-             [class.alert-success]="uploadedBook.status === 'parsed'"
-             [class.alert-info]="uploadedBook.status === 'uploaded' || uploadedBook.status === 'parsing'"
+             [class.alert-success]="uploadedBook.status === 'chunked'"
+             [class.alert-info]="uploadedBook.status === 'uploaded' || uploadedBook.status === 'parsing' || uploadedBook.status === 'parsed' || uploadedBook.status === 'chunking'"
              [class.alert-danger]="uploadedBook.status === 'failed'">
           <strong>{{ uploadedBook.title }}</strong>
 
@@ -34,12 +34,20 @@
               Extracting chapters (this can take a minute for scanned PDFs)...
             </p>
             <p *ngSwitchCase="'parsed'" class="mb-0 mt-1">
-              Parsed successfully. <a [routerLink]="['/books', uploadedBook.id]">View chapters</a> or check your <a routerLink="/library">library</a>.
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Parsed. Preparing translation-sized chunks...
+            </p>
+            <p *ngSwitchCase="'chunking'" class="mb-0 mt-1">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Chunking chapters...
+            </p>
+            <p *ngSwitchCase="'chunked'" class="mb-0 mt-1">
+              Ready for translation. <a [routerLink]="['/books', uploadedBook.id]">View chapters &amp; chunks</a> or check your <a routerLink="/library">library</a>.
             </p>
             <div *ngSwitchCase="'failed'" class="mt-1">
-              <p class="mb-2">Parsing failed: {{ uploadedBook.error_message }}</p>
+              <p class="mb-2">Failed: {{ uploadedBook.error_message }}</p>
               <button class="btn btn-sm btn-outline-danger" type="button" (click)="retryParsing()">
-                Retry parsing
+                Retry
               </button>
             </div>
           </ng-container>
@@ -100,7 +108,7 @@
           </button>
         </div>
         <p class="text-muted small text-start mb-3">
-          Language selection is stored on the book in Phase 6 (Translation Engine) — for now it's just captured in the UI.
+          Language here is just a starting preference — once the book is parsed and chunked, head to its detail page to pick a target language and start translation.
         </p>
 
         <button
